@@ -25,13 +25,13 @@ public class ShaderPuzzle {
 	static public final char STATUS_NO= 'N';
 	
 	// rules are inputed as "2.1-4-4-1-3" and "1-3.1-3.1-3-3"
-	static public final String SEP_NUMBER = "."; 
-	static public final String SEP_LINE = "-";
+	static public final char SEP_NUMBER = '.'; 
+	static public final char SEP_LINE = '-';
 	
 	// and translated into more specific rules array
 	// "2.1-4-4-1-3" becomes "*2+1*", "*4*, "*4*", "*1*", "*3*"
-	static public final String SEP_NOS = "*"; //0 or more NOs
-	static public final String SEP_NOS_PLUS = "+"; //1 or more NOs
+	static public final char SEP_NOS = '*'; //0 or more NOs
+	static public final char SEP_NOS_PLUS = '+'; //1 or more NOs
 	
 	static public final int MAX_HOR_LINES = 9;
 	static public final int MAX_VER_LINES = 9;
@@ -58,14 +58,16 @@ public class ShaderPuzzle {
 	// "*1+3+2*" is regex "[EN]*[EY]{1}[EN]+[EY]{3}[EN]+[EY]{2}[EN]*"
 	// matches "YNYYYNYY" and "YNYYEEEE", but not "YNNYEEEE"
 	public boolean FindRuleInLine(String rule, String line) {
-		String[] strRules = rule.split(SEP_NUMBER); // "3.1" -> "3", "1"
-		
-		if (!rule.contains(".")) {
-			strRules = new String[1];
-			strRules[0] = rule;
-		}
-	
 		// construct regex string
+		char[] ruleBytes = rule.toCharArray();
+		String regex = "";
+		for (int i = 0; i < ruleBytes.length; i++) {
+			char cur = ruleBytes[i];
+			if (SEP_NOS.to == cur) {
+				
+			}
+		}
+		
 		String regex = "[ENn]*";
 		for (int i = 0; i < strRules.length; i++) {
 			regex += "[EYy]{" + strRules[i] + "}";
@@ -89,8 +91,8 @@ public class ShaderPuzzle {
   3[ v][  ][  ][  ][  ]
   3[ v][  ][  ][  ][  ]
   */
-	// the first horizontal line is marked with 'h', while the first vertical one is marked with 'v'
-	public boolean CheckLine(boolean isHorizontalLine, int index) {
+	// check vertical line and horizontal line if the index is not negative
+	public boolean CheckLine(int verLine, int horIndex) {
 		boolean ret = false;
 		if (isHorizontalLine) {
 			// NOTE: horizontal line use rules on left, which is mYRules
@@ -109,6 +111,10 @@ public class ShaderPuzzle {
 		}
 			
 		return ret;
+	}
+	
+	public boolean CheckVerticalLine(int index) {
+		
 	}
 	
 	public boolean Check () {
