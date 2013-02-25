@@ -1,5 +1,8 @@
 package com.leochen4891.ShaderPuzzleResolver;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ShaderPuzzle {
 	/* A 5*5 puzzle
 	    2,1  4   4   1   3  <--vertical rule
@@ -52,132 +55,196 @@ public class ShaderPuzzle {
 		}
 	}
 	
+	public char Get(int y, int x) {
+		return mPuzzle[y][x];
+	}
+	
+	public char[] GetHorizontalLine(int index) {
+		char[] ret = null;
+		if (index >= 0 && index < mY) {
+			ret = new char[mX];
+			for (int i = 0; i < mX; i++) {
+				ret[i] = mPuzzle[index][i];
+			}
+		} else {
+			System.out.print("Error GetHorizontalLine, index:" + index);
+		}
+		return ret;
+	}
+	
+	public char[] GetVerticalLine(int index) {
+		char[] ret = null;
+		if (index >= 0 && index < mX) {
+			ret = new char[mY];
+			for (int i = 0; i < mY; i++) {
+				ret[i] = mPuzzle[i][index];
+			}
+		} else {
+			System.out.print("Error GetVerticalLine, index:" + index);
+		}
+		return ret;
+	}
+	
+	public void Set(int y, int x, char value) {
+		if (x >= 0 && x < mX && y >= 0 && y < mY) { 
+			mPuzzle[y][x] = value;
+		} else {
+			System.out.print("Error when set (" + y + ", " + x + ") to " + value);
+		}
+	}
+	
+	public void SetHorizontalLine(int index, char[] line) {
+		if (index >= 0 && index < mY && line.length == mX) {
+			for (int i = 0; i < mX; i++) {
+				mPuzzle[index][i] = line[i];
+			}
+		} else {
+			System.out.print("error when SetHorizontalLine: " + index + " to " + line.toString());
+		}
+	}
+	
+	public void SetVerticalLine(int index, char[] line) {
+		if (index >= 0 && index < mX && line.length == mY) {
+			for (int i = 0; i < mY; i++) {
+				mPuzzle[i][index] = line[i];
+			}
+		} else {
+			System.out.print("error when SetVerticalLine: " + index + " to " + line.toString());
+		}
+	}
+	
+	// expand implicit rule "1.3.2" to explicit rule "*1+3+2*"
+	// * for [EN]*
+	// + for [EN]+
+	// n for [EY]{n}
+	private String ExpandOriginalRule(String oriRule) {
+		return "*" + oriRule.replace('.', '+') + "*";
+	}
+	
 	// Check if rule matches line
-	// rule looks like: "*3+1*"
+	// rule looks like: "*3+1*", not "3.1"
 	// line looks like: "YYENY"
 	// "*1+3+2*" is regex "[EN]*[EY]{1}[EN]+[EY]{3}[EN]+[EY]{2}[EN]*"
 	// matches "YNYYYNYY" and "YNYYEEEE", but not "YNNYEEEE"
+	// NOTE: rule MUST be expanded rule, NOT original rule
 	public boolean FindRuleInLine(String rule, String line) {
 		// construct regex string
 		char[] ruleBytes = rule.toCharArray();
 		String regex = "";
 		for (int i = 0; i < ruleBytes.length; i++) {
 			char cur = ruleBytes[i];
-			if (SEP_NOS.to == cur) {
-				
-			}
-		}
-		
-		String regex = "[ENn]*";
-		for (int i = 0; i < strRules.length; i++) {
-			regex += "[EYy]{" + strRules[i] + "}";
-			if (i == strRules.length - 1) { // last Y segment, ends with [EN]*
-				regex += "[ENn]*";
-			} else { // Y segments sep, ends with [EN]+
-				regex += "[ENn]+";
+			if (SEP_NOS == cur) { // [EN]*
+				regex += "[" + STATUS_EMPTY + STATUS_NO + "]" + SEP_NOS;
+			} else if (SEP_NOS_PLUS == cur) { // [EN]+
+				regex += "[" + STATUS_EMPTY + STATUS_NO + "]" + SEP_NOS_PLUS;
+			} else if (cur > '0' && cur < '9') {
+				regex += "[" + STATUS_EMPTY + STATUS_YES + "]" +"{" + cur + "}";
+			} else {
+				System.out.print("unexpected char:" + cur + " when find rule:" + rule + " in line:" + line);
+				return false;
 			}
 		}
 		
 		boolean matches = line.matches(regex);
 		return matches;
 	}
-		
 	
-	/* 
-	 2,1  4   4   1   3
-  1[hv][h ][h ][h ][h ]
-3,1[ v][  ][  ][  ][  ]
-3,1[ v][  ][  ][  ][  ]
-  3[ v][  ][  ][  ][  ]
-  3[ v][  ][  ][  ][  ]
-  */
-	// check vertical line and horizontal line if the index is not negative
-	public boolean CheckLine(int verLine, int horIndex) {
-		boolean ret = false;
-		if (isHorizontalLine) {
-			// NOTE: horizontal line use rules on left, which is mYRules
-			String line = "";
-			for (int i = 0; i < mXRules.length; i++) {
-				line += mPuzzle[index][i];
-			}
-			ret = FindRuleInLine(mYRules[index], line);
-		} else {
-			// vertical line need to be constructed now
-			String line = "";
-			for (int i = 0; i < mYRules.length; i++) {
-				line += mPuzzle[i][index];
-			}
-			ret = FindRuleInLine(mXRules[index], line);
+	public boolean CheckHorizontalLine(int index) {
+		if (index < 0 || index > mY) {
+			return false;
 		}
-			
+		
+		String line = "";
+		for (int i = 0; i < mX; i++) {
+			line += mPuzzle[index][i];
+		}
+		boolean ret = FindRuleInLine(ExpandOriginalRule(mHorRules[index]), line);
 		return ret;
 	}
 	
-	public boolean CheckVerticalLine(int index) {
-		
+	public boolean CheckVerticalLines() {
+		for (int i = 0; i < mX; i++) {
+			if (!CheckVerticalLine(i))
+				return false;
+		}
+		return true;
 	}
 	
-	public boolean Check () {
-		boolean result = true;
-		// horizontal lines
-		for (int i = 0; i < mYRules.length; i++) {
-			result = CheckLine(true, i);
-			if (false == result) return false;
+	public boolean CheckVerticalLine(int index) {
+		if (index < 0 || index > mX) {
+			return false;
 		}
 		
-		// vertical lines
-		for (int i = 0; i < mXRules.length; i++) {
-			result = CheckLine(false, i);
+		String line = "";
+		for (int i = 0; i < mY; i++) {
+			line += mPuzzle[i][index];
+		}
+		boolean ret = FindRuleInLine(ExpandOriginalRule(mVerRules[index]), line);
+		return ret;
+	}
+		
+	// check whether the whole puzzle solved 
+	public boolean Check () {
+		boolean result = true;
+		for (int i = 0; i < mY; i++) {
+			result = CheckHorizontalLine(i);
+			if (false == result) return false;
+		}
+		for (int i = 0; i < mX; i++) {
+			result = CheckVerticalLine(i);
 			if (false == result) return false;
 		}
 		return result;
 	}
 	
-	public boolean SetLine(boolean isHorizontal, int index, char[] line) {
-		if (isHorizontal) {
-			if (line.length != mXRules.length) 
-				return false;
-			for (int i = 0; i < line.length; i++) {
-				mPuzzle[index][i] = line[i];
+	public List<String> GetValidCasesForHorizontalLine(int index) {
+		List<String> ret = null;
+		if (index >= 0 && index < mY) {
+			ret = new ArrayList<String>();
+			// start to find cases, increaseing a number from 0 to 2^mX, each bit represents a [  ]
+			// int in java is 32bits, so up to a line of length 32, current max use is 9, so int is adequate
+			String rule = ExpandOriginalRule(mHorRules[index]);
+			String line = "";
+			int length = mX;
+			for (int increaser = 0; increaser < Math.pow(2, length); increaser++) {
+				line = "";
+				for (int i = 0; i < length; i++) {
+					int bit =(increaser&(1<<i));
+					line += (bit==0)?STATUS_NO:STATUS_YES;
+				}
+				if (FindRuleInLine(rule, line)) { // found a valid case
+					ret.add(line);
+				}
 			}
-		} else { // vertical
-			if (line.length != mYRules.length) 
-				return false;
-			for (int i = 0; i < line.length; i++) {
-				mPuzzle[i][index] = line[i];
-			}
+		} else {
+			System.out.print("Error when GetValidCasesForHorizontalLine, index = " + index);
 		}
-		return true;
+		return ret;
 	}
 	
-	public char Get(int x, int y) {
-		return mPuzzle[y][x];
-	}
-	
-	public boolean Set(int x, int y, char value) {
-		if (x < 0 || x > mXRules.length || y < 0 || y > mYRules.length)
-			return false;
-		mPuzzle[y][x] = value;
-		return true;
-	}
-	
-	public void CleanTry() {
-		for (int y = 0; y < mYRules.length; y++) {
-			for (int x = 0; x < mXRules.length; x++) {
-				if (STATUS_TRY_YES == mPuzzle[y][x] || STATUS_TRY_NO == mPuzzle[y][x])
-					mPuzzle[y][x] = STATUS_EMPTY;
-			}
+	public void ClearHorizontalLine(int index) {
+		char[] line = new char[mX];
+		for (int i = 0; i < line.length; i++){
+			line[i] = STATUS_EMPTY;
 		}
+		SetHorizontalLine(index, line);
 	}
 	
-	public void ConfirmTry() {
-		for (int y = 0; y < mYRules.length; y++) {
-			for (int x = 0; x < mXRules.length; x++) {
-				if (STATUS_TRY_YES == mPuzzle[y][x])
-					mPuzzle[y][x] = STATUS_YES;
-				if (STATUS_TRY_NO == mPuzzle[y][x])
-					mPuzzle[y][x] = STATUS_NO;
+	public void PrintPuzzle() {
+		System.out.print("\t");
+		for (int i = 0; i < mX; i++){
+			System.out.print(mVerRules[i] + "\t");
+		}
+		System.out.print("\n");
+		for (int y = 0; y < mY; y++) {
+			for (int x = -1; x < mX; x++) {
+				if (x == -1) {
+					System.out.print(mHorRules[y] + "\t");
+				} else {
+					System.out.print(mPuzzle[y][x] + "\t");
+				}
 			}
+			System.out.print("\n");
 		}
 	}
 }
